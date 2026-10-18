@@ -3,7 +3,7 @@
 Built without access to Claude Code. The scripts are tested; the Claude Code integration is not.
 
 ## Verified (sandbox)
-`python scripts/selftest.py` -> 21/21: tamper detection and revert, breaker write limits, hide/reveal of questions and holdout, static audit (stubs, mocks, network, swallowed errors, suppressions, test-runner detection, TODOs), round and streak budget, hook allow/block decisions on simulated input.
+`python "<skill>/scripts/selftest.py"` -> 21/21: tamper detection and revert, breaker write limits, hide/reveal of questions and holdout, static audit (stubs, mocks, network, swallowed errors, suppressions, test-runner detection, TODOs), round and streak budget, hook allow/block decisions on simulated input.
 
 ## Not verified: please check in Claude Code
 1. **Hook format.** Does PreToolUse pass `tool_name` and `tool_input` as JSON on stdin as `hook_guard.py` assumes, and does exit code 2 block the call? Does `matcher` accept the tool list in `install.py`?
@@ -14,7 +14,7 @@ Built without access to Claude Code. The scripts are tested; the Claude Code int
 6. **Trigger.** Does `/1v1` load the skill, and does a hard task trigger it while a rename does not (see `evals/evals.json`)?
 
 ## Setup (target project)
-`pip install pytest hypothesis mypy ruff`, then `python <skill>/scripts/install.py`. Run the three prompts in `evals/evals.json` with the skill and without it, and compare.
+`pip install pytest hypothesis mypy ruff`, then `python "<skill>/scripts/install.py" --dry-run` to preview, `python "<skill>/scripts/install.py"` to install, and `python "<skill>/scripts/install.py" --uninstall --purge` to remove everything. Run the three prompts in `evals/evals.json` with the skill and without it, and compare.
 
 ## Known limits
 Token spend cannot be capped by a skill; only rounds and attempts are counted. The skill is a proposal: its benefit is unmeasured.

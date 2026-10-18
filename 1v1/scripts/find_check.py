@@ -19,7 +19,7 @@ def create():
     missing = [m for m in ("pytest", "mypy", "ruff", "hypothesis") if importlib.util.find_spec(m) is None]
     if missing: print("MISSING TOOLS (ask user to install): " + ", ".join(missing)); return None
     p = ROOT / "verify"
-    p.write_text("#!/usr/bin/env bash\nset -euo pipefail\npython -m pytest -q\npython -m mypy .\npython -m ruff check .\n")
+    p.write_text("#!/usr/bin/env bash\n# created by 1v1\nset -euo pipefail\npython -m pytest -q\npython -m mypy .\npython -m ruff check .\n")
     p.chmod(p.stat().st_mode | stat.S_IEXEC)
     return "./verify"
 
