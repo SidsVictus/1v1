@@ -53,6 +53,28 @@ A separate orchestrator runs the checks itself, so "done" only means the final t
 - You approve the contract, number of rounds and estimated cost once, before anything runs.
 - More rounds mean more tokens, so expect it to cost more than a normal Claude Code session.
 
+## Commands
+
+**In Claude Code**
+
+| Command | What it does |
+|---|---|
+| `/1v1` | Starts the skill. It first checks whether the task is hard enough, then runs setup and the builder/breaker rounds. |
+
+**Scripts** (the skill runs these for you; run them from your project root, using the full path to the skill folder, for example `~/.claude/skills/1v1/scripts/`)
+
+| Script | What it does |
+|---|---|
+| `install.py` | One-time setup: adds the hook and agent files. `--dry-run` previews, `--uninstall` removes the hook and agents, `--uninstall --purge` also removes `.1v1/`, `verify` and the `CLAUDE.md` block. |
+| `find_check.py` | Finds your project's one-command check (`verify`, Makefile, nox, tox or pytest). With `--create` it writes `./verify` (pytest + mypy + ruff). |
+| `time_check.py "<cmd>"` | Times the check. If it takes over 60 seconds, it writes a fast subset (`verify-fast`) for the loop. |
+| `round_budget.py` | Counts rounds and the no-new-failure streak. `init --rounds N --streak M` starts it, `record N` logs new failures, `status` shows progress. |
+| `guard.py` | Detects tampering with protected files (tests, config, CI). `init` snapshots, `check [--role builder\|breaker] [--revert]` verifies and can undo changes, `hide`/`reveal` move the question list and holdout tests out of and back into the project, `role NAME` sets the active role. |
+| `hook_guard.py` | The Claude Code hook. Blocks actions the active role isn't allowed to take, such as the builder editing tests. |
+| `audit.py` | Scans the finished code for cheating patterns (stubs, mocks, swallowed errors, suppressions). Exits 1 on findings. |
+| `selftest.py` | Tests the scripts above in a throwaway project (21 checks). |
+
+
 ## License
 
 MIT
