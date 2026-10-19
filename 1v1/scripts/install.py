@@ -26,7 +26,7 @@ dry = "--dry-run" in args
 
 
 def is_ours(h):
-    return "hook_guard.py" in json.dumps(h)
+    return h.get("type") == "command" and h.get("command") == cmd
 
 
 def load_settings():
@@ -58,7 +58,7 @@ def install():
         shutil.copy2(f, dst)
     s = load_settings()
     hooks = s.setdefault("hooks", {}).setdefault("PreToolUse", [])
-    if not any(is_ours(h) for h in hooks):
+    if not any(is_ours(h) for entry in hooks for h in entry["hooks"]):
         hooks.append({"matcher": MATCHER, "hooks": [{"type": "command", "command": cmd}]})
     sp.parent.mkdir(parents=True, exist_ok=True)
     sp.write_text(json.dumps(s, indent=2))
@@ -73,8 +73,17 @@ def uninstall():
     if sp.exists():
         s = load_settings()
         pre = s.get("hooks", {}).get("PreToolUse", [])
-        keep = [h for h in pre if not is_ours(h)]
-        say(f"settings: remove {len(pre) - len(keep)} 1v1 hook entr{'y' if len(pre) - len(keep) == 1 else 'ies'} from {sp}")
+        keep = []
+        removed = 0
+        for entry in pre:
+            remaining = [h for h in entry["hooks"] if not is_ours(h)]
+            removed_here = len(entry["hooks"]) - len(remaining)
+            removed += removed_here
+            if not removed_here:
+                keep.append(entry)
+            elif remaining:
+                keep.append({**entry, "hooks": remaining})
+        say(f"settings: remove {removed} 1v1 hook command(s) from {sp}")
         if not dry:
             if keep: s["hooks"]["PreToolUse"] = keep
             else:

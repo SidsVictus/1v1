@@ -1,6 +1,6 @@
 ---
 name: 1v1
-description: Runs a builder-vs-breaker loop in Claude Code. One subagent builds the code. A separate subagent then attacks the running result and can only return failing tests, so the work is tested honestly instead of graded by its own author. Use this skill when the user types /1v1. Also use it for hard or high-stakes tasks, such as multi-step builds, data migrations, payments, security, or anything irreversible. Trigger it when the user says things like "make sure it actually works", "don't fake it", "break it", "stress test this", or "adversarial testing". Do NOT use it for small, easily checked changes. The gate in Step 1 declines those.
+description: Runs a builder-vs-breaker loop for Python projects in Claude Code. One subagent builds; a separate subagent attacks the result and returns failing tests. Use for /1v1, hard or high-stakes tasks, multi-step builds, data migrations, payments, security, stress tests or adversarial testing. Requires pytest, mypy, ruff and hypothesis; setup installs project hooks and agents after approval. Decline small, easily checked changes.
 ---
 
 # 1v1: Builder vs Breaker (Python)
@@ -25,9 +25,10 @@ Read `references/contract-template.md`, `references/universal-contract.md` and `
 | `.claude/agents/builder.md`, `breaker.md` | agent definitions. A different same-name file is backed up as `<name>.md.1v1-bak` and restored on uninstall | `install.py --uninstall` |
 | `.1v1/` | contract, question list, breaker and holdout tests | `--uninstall --purge` |
 | `./verify` | only if no check command exists and the user allowed `--create` | `--uninstall --purge` |
+| `./verify-fast` | fast check script if the approved check takes over 60s | inspect and remove manually when no longer needed |
 | `CLAUDE.md` | check command, inside a `<!-- 1v1:start -->` ... `<!-- 1v1:end -->` block | `--uninstall --purge` |
 
-**To remove everything:** `python "SKILL_DIR/scripts/install.py" --uninstall --purge` (add `--dry-run` to preview).
+**To remove the installed hook, agents and marked setup files:** `python "SKILL_DIR/scripts/install.py" --uninstall --purge` (add `--dry-run` to preview).
 
 ## Iron rules (why: each closes a known cheating path)
 
@@ -43,13 +44,13 @@ Read `references/contract-template.md`, `references/universal-contract.md` and `
 Decline and stop (say why in one line) if the task is small, well specified and checkable with the existing tests. Otherwise continue.
 
 ## Step 2 - Fast check command
-Run `find_check.py` (no flags). It only looks: it finds a test script, Makefile target, nox/tox or pytest config and prints the command. If it prints `NO CHECK COMMAND`, tell the user that `find_check.py --create` will write `./verify` (pytest + mypy + ruff, exit 0/1), and run it with `--create` only after they agree. Run `time_check.py "<check command>"`; if over 60s it makes a fast subset for the loop and keeps the full run for Step 6. Record the command in `CLAUDE.md` inside a `<!-- 1v1:start -->` ... `<!-- 1v1:end -->` block, and leave the rest of the file alone. If no runnable check exists after this, stop and tell the user. Never build blind.
+Run `find_check.py` (no flags). It only looks: it finds a test script, Makefile target, nox/tox or pytest config and prints the command. Use one executable command with quoted arguments; put shell pipelines, environment setup or compound commands in a project check script. `time_check.py` does not invoke a shell. If discovery prints `NO CHECK COMMAND`, propose creating `./verify` (pytest + mypy + ruff, exit 0/1) after Step 4 approval. Draft the intended `CLAUDE.md` block in the conversation. Do not create files or run the check command yet; `time_check.py` can write `verify-fast`, so it also waits for approval.
 
 ## Step 3 - Contract
-Build `.1v1/contract.md` as: `references/universal-contract.md` (U1-U16, copied unchanged) + a task part inferred from the repo and request using the template. Seed `.1v1/questions.md` with all of `references/universal-questions.md` (G1-G16), then derive T-questions from the Interface as that file describes. Ask at most 3 multiple-choice questions, only where a wrong guess is costly, each with a recommended default. Cover: goals, non-goals, what the agent may decide alone, what "done" means. Real sample data must come from the user. Offer the optional question list; append each question verbatim to `.1v1/questions.md` with an ID (Q1, Q2...). Do not reword them.
+Draft the contract and question list in the conversation, without writing project files. The contract is `references/universal-contract.md` (U1-U16, copied unchanged) + a task part inferred from the repo and request using the template. Seed the question list with all of `references/universal-questions.md` (G1-G16), then derive T-questions from the Interface as that file describes. Ask at most 3 multiple-choice questions, only where a wrong guess is costly, each with a recommended default. Cover: goals, non-goals, what the agent may decide alone, what "done" means. Real sample data must come from the user. Offer the optional question list; append each question verbatim with an ID (Q1, Q2...). Do not reword them. Write the accepted drafts to `.1v1/contract.md` and `.1v1/questions.md` only after Step 4 approval.
 
 ## Step 4 - One approval
-First run `install.py --dry-run` and paste its output into the approval screen. Show on one screen: the contract, rounds (default 3), no-new-failure streak (default 2 attempts), estimated cost range, the cost cap, and a plain list of the project changes the dry run reported (hook in `.claude/settings.json`, agent files copied, any file that will be backed up and overwritten, `.1v1/`, `./verify` if it will be created, the `CLAUDE.md` block) plus the removal command from the Paths section. Run nothing until the user approves. Then run `install.py` (once per project), `round_budget.py init --rounds N --streak M`, and `guard.py init` (snapshot).
+First run `install.py --dry-run` and paste its output into the approval screen. Show on one screen: the contract, rounds (default 3), no-new-failure streak (default 2 attempts), estimated cost range, the cost cap, and a plain list of the planned project changes (hook in `.claude/settings.json`, agent files copied, any file that will be backed up and overwritten, `.1v1/`, `./verify` if needed, optional `./verify-fast` for a slow check, and the `CLAUDE.md` block) plus the removal command from the Paths section. Run no setup writes until the user approves. Then run `install.py` (once per project), create `./verify` with `find_check.py --create` if approved, and run `time_check.py "<check command>"`. If the check takes over 60s, it creates `verify-fast` for the loop; keep the full command for Step 6. If no runnable check exists, stop and tell the user. Save the approved contract/question drafts and the `CLAUDE.md` block, leaving the rest of `CLAUDE.md` alone. Finally run `round_budget.py init --rounds N --streak M` and `guard.py init` (snapshot).
 
 ## Step 5 - Loop (max rounds)
 1. `guard.py hide` (moves the question list and holdout out of the project), `guard.py role builder`, then spawn `builder` (`agents/builder.md`) with contract + current failing tests.

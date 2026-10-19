@@ -1,10 +1,10 @@
 """Time the check command. Usage: time_check.py "<cmd>". Writes verify-fast if over 60s."""
-import subprocess, sys, time
+import shlex, subprocess, sys, time
 from common import *
 
 cmd = sys.argv[1]
 t = time.time()
-r = subprocess.run(cmd, shell=True, cwd=ROOT, capture_output=True, text=True)
+r = subprocess.run(shlex.split(cmd), cwd=ROOT, capture_output=True, text=True)
 dt = time.time() - t
 print(f"exit={r.returncode} seconds={dt:.1f}")
 if dt > 60:
