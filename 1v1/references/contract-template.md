@@ -45,13 +45,20 @@ All R and invariants pass; check command green; breaker tests green; holdout gre
 every question in `.1v1/questions.md` has an outcome. Nothing else counts.
 
 ## Limits
-Rounds: 3 | No-new-failure streak: 2 | Cost cap: <set by user>
+Rounds: 3 | No-new-failure streak: 2 | Cost: rough estimate only (not measured or capped by the skill)
+
+## Waivers and feasibility
+- U-rule waivers: <U-ID: reason, or "none"> (every waiver is shown on the approval screen)
+- Each R rule: one line on how it can be met; flag any rule you are not sure is achievable
 ```
 
 ## Writing rules
 
 - Rewrite any rule that uses "should", "properly", "robust", "clean". Replace with an observable behaviour.
 - Never let the contract say how to implement. It says what must hold.
+- A task rule or non-goal that conflicts with a U rule (for example "no dry-run flag" vs U8) is a waiver: list it under Waivers, never leave it implicit.
+- Timing rules need a wide margin (3x or more over what a reasonable implementation needs) or a relative check (growth ratio), so a slower machine does not fail honest code.
+- Do not promise what the platform cannot do (for example replacing two files in one atomic step). Say so at approval instead.
 - If a rule cannot be checked by a command, move it to the user's question list as "needs your judgement".
 - Do not copy test code into the contract; the builder would write to the test.
 
