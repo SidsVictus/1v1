@@ -6,7 +6,7 @@
 
 A Claude Code skill where one subagent builds the code and a separate subagent attacks the running result and can only return failing tests. Use it for hard or high-stakes tasks.
 
-📄 **[Read the research behind it](1v1-documentation.pdf)** (written before the skill was built; for what was actually built and tested, see [TESTING.md](1v1/TESTING.md))
+📄 **[Read the full documentation](1v1-documentation.pdf)**: the problem, the design and the evidence behind it. Test details are in [TESTING.md](1v1/TESTING.md).
 
 ## Install
 
